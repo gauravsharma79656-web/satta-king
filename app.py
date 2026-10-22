@@ -242,7 +242,7 @@ def api_sync():
 @app.route("/api/history", methods=["GET"])
 def api_history():
     limit = int(request.args.get("limit", 60))
-    df = get_df()
+    df = ensure_fresh_data()
     records = df.tail(limit).to_dict(orient="records")
     records.reverse()
     return jsonify({

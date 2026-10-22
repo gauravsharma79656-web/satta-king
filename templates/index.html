@@ -460,10 +460,12 @@
             icon.className = 'fa-solid fa-circle-notch fa-spin';
 
             try {
-                const res = await fetch(`/api/predict_by_date?date=${targetDate}`);
+                const res = await fetch(`/api/predict_by_date?date=${targetDate}&_t=${Date.now()}`);
                 const data = await res.json();
                 if (data.status === 'success') {
                     renderSimulationResults(data);
+                    loadHistory();
+                    loadSummary();
                 } else {
                     alert("Error: " + data.message);
                 }
@@ -643,7 +645,7 @@
 
         async function loadSummary() {
             try {
-                const res = await fetch('/api/summary');
+                const res = await fetch(`/api/summary?_t=${Date.now()}`);
                 const data = await res.json();
                 if (data.status === 'success') {
                     document.getElementById('stat-date').textContent = data.latest_date;
@@ -673,7 +675,7 @@
 
         async function loadPredictions() {
             try {
-                const res = await fetch('/api/predict_all');
+                const res = await fetch(`/api/predict_all?_t=${Date.now()}`);
                 const data = await res.json();
                 if (data.status === 'success') {
                     renderPredictions(data.predictions, data.backtests);
@@ -942,7 +944,7 @@
 
         async function loadHistory() {
             try {
-                const res = await fetch('/api/history?limit=100');
+                const res = await fetch(`/api/history?limit=100&_t=${Date.now()}`);
                 const data = await res.json();
                 if (data.status === 'success') {
                     fullHistory = data.history;
