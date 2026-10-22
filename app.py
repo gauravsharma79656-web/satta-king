@@ -22,6 +22,16 @@ def get_df(force_reload=False):
         cached_dataset = get_latest_dataset()
     return cached_dataset
 
+def ensure_fresh_data():
+    global cached_dataset
+    try:
+        new_df = sync_latest_today(min_interval=15)
+        cached_dataset = new_df
+        return new_df
+    except Exception as e:
+        print("ensure_fresh_data error:", e)
+        return get_df()
+
 def refresh_predictions():
     global cached_predictions, cached_backtests
     df = get_df()
@@ -34,7 +44,7 @@ def index():
 
 @app.route("/api/summary", methods=["GET"])
 def api_summary():
-    df = get_df()
+    df = ensure_fresh_data()
     last_row = df.iloc[-1].to_dict()
     prev_row = df.iloc[-2].to_dict() if len(df) > 1 else last_row
 
@@ -60,6 +70,7 @@ def api_summary():
 @app.route("/api/predict_all", methods=["GET"])
 def api_predict_all():
     global cached_predictions, cached_backtests
+    ensure_fresh_data()
     if cached_predictions is None or cached_backtests is None:
         refresh_predictions()
     return jsonify({
@@ -75,7 +86,12 @@ def api_predict_by_date():
     if not target_date:
         return jsonify({"status": "error", "message": "Date parameter required (YYYY-MM-DD)"}), 400
 
-    df = get_df()
+    today_str = datetime.datetime.now().strftime("%Y-%m-%d")
+    yesterday_str = (datetime.datetime.now() - datetime.timedelta(days=1)).strftime("%Y-%m-%d")
+    if target_date in [today_str, yesterday_str]:
+        df = ensure_fresh_data()
+    else:
+        df = get_df()
     date_matches = df[df["date"] == target_date]
     has_actual = False
     actual_results = {}
@@ -210,7 +226,7 @@ def api_sync():
     """1-Click Sync from satta-king-fast.com"""
     global cached_dataset
     try:
-        new_df = sync_latest_today()
+        new_df = sync_latest_today(min_interval=0)
         cached_dataset = new_df
         predictions, backtests = refresh_predictions()
         return jsonify({

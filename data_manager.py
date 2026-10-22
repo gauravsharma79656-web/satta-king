@@ -194,10 +194,20 @@ def get_latest_dataset(force_refresh=False):
         return build_full_dataset()
     return pd.read_csv(ALL_GAMES_CSV, dtype=str)
 
-def sync_latest_today():
-    """Quick sync for today and yesterday only, without re-scraping all 3 years."""
+import time
+
+_last_sync_time = 0
+
+def sync_latest_today(min_interval=15):
+    """Quick sync for today and yesterday only, without re-scraping all years."""
+    global _last_sync_time
+    now_t = time.time()
+    if min_interval > 0 and (now_t - _last_sync_time) < min_interval:
+        return get_latest_dataset()
+
     df = get_latest_dataset()
     live_rows = fetch_live_table()
+    _last_sync_time = time.time()
     if not live_rows:
         return df
 
