@@ -129,6 +129,89 @@ The matrix is normalized to $\sum_{i,j} M_{i,j} = 1.0$ and sorted to extract:
 3. **Solid Harufs:** Primary and secondary digit modes for Andar and Bahar.
 4. **Strictly 6-Digit Crossing Box:** The 6 most probable distinct digits aggregated from Andar, Bahar, and predecessor transfers. Crossing generates $6 \times 6 = 36$ playable combinations.
 
+### 3.5 Detailed Feature Engineering Architecture (Feature Space per Row)
+
+Each historical draw row is transformed into a dense numerical feature vector $X$ in `ai_engine.py` via `_extract_features_for_row(idx)`. The feature space combines calendar temporality, intraday sequential states, historical lag windows, and 14-day rolling frequency spectra:
+
+#### 1. Temporal & Calendar Baseline (3 Features)
+- `dayofweek`: Day of the week integer ($0 = \text{Monday}, \dots, 6 = \text{Sunday}$).
+- `day`: Day of the month ($1 \dots 31$).
+- `month`: Calendar month ($1 \dots 12$).
+
+#### 2. Preceding Same-Day In-Sequence Draws ($7 \times K$ Features)
+Reflects games drawn **earlier on the same calendar date** according to real-world draw order:
+$$\text{DSWR (0 preceding)} \longrightarrow \text{FRBD (1 preceding)} \longrightarrow \text{GBD (2 preceding)} \longrightarrow \text{GALI (3 preceding)}$$
+
+For each preceding game ($K \in \{0, 1, 2, 3\}$), 7 distinct attributes are extracted:
+- `same_day_{GAME}_num`: Full 2-digit integer result ($0 \dots 99$).
+- `same_day_{GAME}_tens`: Andar digit ($T = N // 10$).
+- `same_day_{GAME}_ones`: Bahar digit ($O = N \% 10$).
+- `same_day_{GAME}_rashi_t`: Rashi mirror of Tens digit ($R(T)$).
+- `same_day_{GAME}_rashi_o`: Rashi mirror of Ones digit ($R(O)$).
+- `same_day_{GAME}_sum`: Digital root sum mod 10 ($(T + O) \pmod{10}$).
+- `same_day_{GAME}_jora`: Binary indicator ($1$ if $T == O$ i.e. double digit like 11, 22; else $0$).
+
+#### 3. Lag-1 Cross-Game State — Yesterday's Full Draw ($24$ Features)
+Captures the entire 4-game outcome from the previous day ($t - 1$):
+- Extracted for all 4 games: `DSWR`, `FRBD`, `GBD`, `GALI`.
+- 6 features per game: `lag1_{GAME}_num`, `lag1_{GAME}_tens`, `lag1_{GAME}_ones`, `lag1_{GAME}_rashi_t`, `lag1_{GAME}_rashi_o`, `lag1_{GAME}_jora`.
+- Total: $4 \times 6 = 24$ features.
+
+#### 4. Lag-2 & Lag-3 Multi-Day Memory (6 Features)
+Captures historical momentum of the **specific target game** over the preceding 2 and 3 days:
+- `lag2_{TARGET}_num`, `lag2_{TARGET}_tens`, `lag2_{TARGET}_ones` (3 features).
+- `lag3_{TARGET}_num`, `lag3_{TARGET}_tens`, `lag3_{TARGET}_ones` (3 features).
+
+#### 5. Rolling 14-Day Frequency Spectra (20 Features)
+Tracks how frequently each digit ($0 \dots 9$) appeared in the target game over a rolling 14-day trailing window:
+- `roll14_tens_0` to `roll14_tens_9`: Occurrence count of each Tens digit (10 features).
+- `roll14_ones_0` to `roll14_ones_9`: Occurrence count of each Ones digit (10 features).
+
+---
+
+### 3.6 Which Data is Sent to the Model for Training (Per-Game Breakdown)
+
+Training is conducted separately for each of the 4 games using `GamePredictor.train()`. Each game uses an input matrix $X$ tailored to its chronological position in the daily cycle:
+
+```mermaid
+flowchart TD
+    subgraph DSWR_Model ["1. Desawar (DSWR) Model"]
+        DSWR_Target["Targets: y_andar (0-9), y_bahar (0-9)"]
+        DSWR_Features["Features (53 dims): Calendar (3) + Lag1 All Games (24) + Lag2/3 DSWR (6) + Rolling 14d (20)"]
+    end
+
+    subgraph FRBD_Model ["2. Faridabad (FRBD) Model"]
+        FRBD_Target["Targets: y_andar (0-9), y_bahar (0-9)"]
+        FRBD_Features["Features (60 dims): DSWR Features (53) + Same-Day DSWR (7)"]
+    end
+
+    subgraph GBD_Model ["3. Ghaziabad (GBD) Model"]
+        GBD_Target["Targets: y_andar (0-9), y_bahar (0-9)"]
+        GBD_Features["Features (67 dims): DSWR Features (53) + Same-Day DSWR (7) + Same-Day FRBD (7)"]
+    end
+
+    subgraph GALI_Model ["4. Gali (GALI) Model"]
+        GALI_Target["Targets: y_andar (0-9), y_bahar (0-9)"]
+        GALI_Features["Features (74 dims): DSWR Features (53) + Same-Day DSWR (7) + Same-Day FRBD (7) + Same-Day GBD (7)"]
+    end
+```
+
+#### Detailed Specification Table
+
+| Game | Draw Time | Feature Vector Dimension | Preceding Same-Day Data Included in $X$ | Training Target Labels ($y$) | Sample Filter ($N_{\text{train}}$) |
+| :--- | :---: | :---: | :--- | :--- | :--- |
+| **DSWR** (Desawar) | 5:00 AM | **53 features** | None (first draw of the day). Relies on yesterday's Gali ($t-1$) + historical lags. | $y_{\text{andar}} \in \{0..9\}$<br>$y_{\text{bahar}} \in \{0..9\}$ | All historical rows where $\text{DSWR} \ne \text{'XX'}$ ($4,300+$ rows) |
+| **FRBD** (Faridabad) | 6:15 PM | **60 features** | **DSWR of the same day** (7 features: `num`, `tens`, `ones`, `rashi_t`, `rashi_o`, `sum`, `jora`). | $y_{\text{andar}} \in \{0..9\}$<br>$y_{\text{bahar}} \in \{0..9\}$ | All historical rows where $\text{FRBD} \ne \text{'XX'}$ ($4,300+$ rows) |
+| **GBD** (Ghaziabad) | 8:30 PM | **67 features** | **DSWR + FRBD of the same day** (14 features: 7 from DSWR + 7 from FRBD). | $y_{\text{andar}} \in \{0..9\}$<br>$y_{\text{bahar}} \in \{0..9\}$ | All historical rows where $\text{GBD} \ne \text{'XX'}$ ($4,300+$ rows) |
+| **GALI** (Gali) | 11:30 PM | **74 features** | **DSWR + FRBD + GBD of the same day** (21 features: 7 each from DSWR, FRBD, GBD). | $y_{\text{andar}} \in \{0..9\}$<br>$y_{\text{bahar}} \in \{0..9\}$ | All historical rows where $\text{GALI} \ne \text{'XX'}$ ($4,300+$ rows) |
+
+#### Training Data Filtering & Target Separation:
+1. **Sample Purification:** For each game, the training dataset selects indices where `game_num >= 0` (`valid_indices = np.where(t_arr >= 0)[0]`). Days with unannounced or pending draws (`XX`) are completely excluded from training targets, preventing label contamination.
+2. **Dual-Model Decomposition:**
+   - **Andar Estimators:** Trained on $X$ with $y_{\text{andar}} = \text{Tens digit} \in \{0, 1, \dots, 9\}$.
+   - **Bahar Estimators:** Trained on $X$ with $y_{\text{bahar}} = \text{Ones digit} \in \{0, 1, \dots, 9\}$.
+3. **Ensemble Execution:** Each digit position fits both a `RandomForestClassifier` (100 trees) and a `HistGradientBoostingClassifier` (80 boosting stages). Predictions are subsequently synthesized by the probability matrix booster described in Section 3.4.
+
 ---
 
 ## 4. API Flow & Architecture
@@ -217,11 +300,11 @@ The application uses lightweight, high-speed flat-file CSV storage with serverle
    - It checks `models/{GAME}_predictor.pkl`.
    - If found, model weights load via `joblib.load()`.
    - If missing or unreadable, `train()` runs dynamically on `data/all_games_dataset.csv`.
-2. 28 engineered features are generated per row:
-   - Rolling 14-day digit frequencies.
-   - Day of week, day of month, calendar month.
-   - Lag 1, lag 2, lag 3 drawn values for target and related games.
-   - Sum of digits, direct Rashi digits, and pair double (`jora`) indicators.
+2. Sequential feature vectors are generated per row (as detailed in Sections 3.5 & 3.6):
+   - **DSWR:** 53 engineered features (Calendar, Lag-1 cross-game state, Lag-2/3 memory, 14-day rolling digit frequencies).
+   - **FRBD:** 60 engineered features (Base 53 + same-day morning DSWR state).
+   - **GBD:** 67 engineered features (Base 53 + same-day DSWR and evening FRBD states).
+   - **GALI:** 74 engineered features (Base 53 + same-day DSWR, FRBD, and night GBD states).
 3. Fits `RandomForestClassifier` and `HistGradientBoostingClassifier`.
 4. Evaluates backtest performance on the final 30 draws to report hit rates.
 
