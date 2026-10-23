@@ -121,39 +121,59 @@ def api_predict_by_date():
         }
         has_actual = any(v not in ["XX", ""] for v in actual_results.values())
 
-        df_eval = df.iloc[:target_idx+1].copy()
-        df_eval.loc[target_idx, ["DSWR", "FRBD", "GBD", "GALI"]] = ["XX", "XX", "XX", "XX"]
-    else:
-        df_eval = df.copy()
-        df_eval = pd.concat([df_eval, pd.DataFrame([{
-            "date": target_date, "DSWR": "XX", "FRBD": "XX", "GBD": "XX", "GALI": "XX"
-        }])], ignore_index=True)
-
+    latest_date = df.iloc[-1]["date"]
     predictions = {}
     verdicts = {}
 
+    # If target_date is today / latest date, guarantee 100% exact alignment with predict_all
+    if target_date == latest_date:
+        global cached_predictions
+        if cached_predictions is None:
+            refresh_predictions()
+        predictions = cached_predictions
+    else:
+        for game in ["DSWR", "FRBD", "GBD", "GALI"]:
+            if not date_matches.empty:
+                df_eval = df.iloc[:target_idx+1].copy()
+                # Follow real-world sequential order within the day:
+                if game == "DSWR":
+                    df_eval.loc[target_idx, ["DSWR", "FRBD", "GBD", "GALI"]] = ["XX", "XX", "XX", "XX"]
+                elif game == "FRBD":
+                    df_eval.loc[target_idx, ["FRBD", "GBD", "GALI"]] = ["XX", "XX", "XX"]
+                elif game == "GBD":
+                    df_eval.loc[target_idx, ["GBD", "GALI"]] = ["XX", "XX"]
+                elif game == "GALI":
+                    df_eval.loc[target_idx, ["GALI"]] = ["XX"]
+            else:
+                df_eval = df.copy()
+                df_eval = pd.concat([df_eval, pd.DataFrame([{
+                    "date": target_date, "DSWR": "XX", "FRBD": "XX", "GBD": "XX", "GALI": "XX"
+                }])], ignore_index=True)
+
+            pkl_path = os.path.join(MODELS_DIR, f"{game}_predictor.pkl")
+            if os.path.exists(pkl_path):
+                p_saved = joblib.load(pkl_path)
+                eval_pred = GamePredictor(game, df_eval)
+                eval_pred.model_andar_rf = p_saved.model_andar_rf
+                eval_pred.model_bahar_rf = p_saved.model_bahar_rf
+                eval_pred.model_andar_hgb = p_saved.model_andar_hgb
+                eval_pred.model_bahar_hgb = p_saved.model_bahar_hgb
+                eval_pred.feature_names = p_saved.feature_names
+            else:
+                predictor = ai_manager.get_predictor(game, df)
+                eval_pred = GamePredictor(game, df_eval)
+                eval_pred.model_andar_rf = predictor.model_andar_rf
+                eval_pred.model_bahar_rf = predictor.model_bahar_rf
+                eval_pred.model_andar_hgb = predictor.model_andar_hgb
+                eval_pred.model_bahar_hgb = predictor.model_bahar_hgb
+                eval_pred.feature_names = predictor.feature_names
+
+            res = eval_pred.predict_next()
+            predictions[game] = res
+
+    # Compute verdicts against actual results
     for game in ["DSWR", "FRBD", "GBD", "GALI"]:
-        pkl_path = os.path.join(MODELS_DIR, f"{game}_predictor.pkl")
-        if os.path.exists(pkl_path):
-            p_saved = joblib.load(pkl_path)
-            eval_pred = GamePredictor(game, df_eval)
-            eval_pred.model_andar_rf = p_saved.model_andar_rf
-            eval_pred.model_bahar_rf = p_saved.model_bahar_rf
-            eval_pred.model_andar_hgb = p_saved.model_andar_hgb
-            eval_pred.model_bahar_hgb = p_saved.model_bahar_hgb
-            eval_pred.feature_names = p_saved.feature_names
-        else:
-            predictor = ai_manager.get_predictor(game, df)
-            eval_pred = GamePredictor(game, df_eval)
-            eval_pred.model_andar_rf = predictor.model_andar_rf
-            eval_pred.model_bahar_rf = predictor.model_bahar_rf
-            eval_pred.model_andar_hgb = predictor.model_andar_hgb
-            eval_pred.model_bahar_hgb = predictor.model_bahar_hgb
-            eval_pred.feature_names = predictor.feature_names
-
-        res = eval_pred.predict_next()
-        predictions[game] = res
-
+        res = predictions[game]
         if has_actual and actual_results.get(game) not in ["XX", None, ""]:
             actual_val = actual_results[game]
             try:
