@@ -713,13 +713,38 @@
                     document.getElementById('stat-date').textContent = data.latest_date;
                     document.getElementById('stat-records').textContent = `${data.total_days} recorded draws`;
 
-                    renderBadge('stat-dswr-val', data.latest_results.DSWR);
-                    renderBadge('stat-frbd-val', data.latest_results.FRBD);
-                    renderBadge('stat-gbd-val', data.latest_results.GBD);
-                    renderBadge('stat-gali-val', data.latest_results.GALI);
+                    const decl = data.latest_declared || {};
+                    renderGameCard('dswr', data.latest_results.DSWR, decl.DSWR, 'Morning 5:00 AM');
+                    renderGameCard('frbd', data.latest_results.FRBD, decl.FRBD, 'Eve 6:15 PM');
+                    renderGameCard('gbd', data.latest_results.GBD, decl.GBD, 'Night 8:30 PM');
+                    renderGameCard('gali', data.latest_results.GALI, decl.GALI, 'Night 11:30 PM');
                 }
             } catch (e) {
                 console.error("Summary load error:", e);
+            }
+        }
+
+        function renderGameCard(gameKey, todayVal, latestDecl, defaultTime) {
+            const valEl = document.getElementById(`stat-${gameKey}-val`);
+            const statusEl = document.getElementById(`stat-${gameKey}-status`);
+            if (!valEl) return;
+
+            if (todayVal && todayVal !== 'XX') {
+                valEl.textContent = todayVal;
+                valEl.className = 'text-2xl font-black text-emerald-400 px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 font-mono shadow-sm';
+                if (statusEl) {
+                    statusEl.innerHTML = `<span class="text-emerald-400 font-bold text-[11px]"><i class="fa-solid fa-circle-check text-[10px]"></i> Today Declared</span>`;
+                }
+            } else if (latestDecl && latestDecl.number && latestDecl.number !== 'XX') {
+                valEl.textContent = latestDecl.number;
+                valEl.className = 'text-2xl font-black text-amber-400 px-2.5 py-0.5 rounded bg-amber-500/10 border border-amber-500/30 font-mono';
+                if (statusEl) {
+                    statusEl.innerHTML = `<span class="text-[10px] text-slate-300 block">Last: ${latestDecl.date.slice(5)}</span><span class="text-[10px] text-cyan-400 font-semibold block">${defaultTime}</span>`;
+                }
+            } else {
+                valEl.textContent = 'XX';
+                valEl.className = 'text-sm font-semibold text-slate-500 px-2 py-0.5 rounded bg-slate-800 border border-slate-700';
+                if (statusEl) statusEl.textContent = defaultTime;
             }
         }
 

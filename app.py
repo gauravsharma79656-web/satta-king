@@ -48,6 +48,19 @@ def api_summary():
     last_row = df.iloc[-1].to_dict()
     prev_row = df.iloc[-2].to_dict() if len(df) > 1 else last_row
 
+    latest_declared = {}
+    for g in ["DSWR", "FRBD", "GBD", "GALI"]:
+        valid = df[df[g] != "XX"]
+        if not valid.empty:
+            r = valid.iloc[-1]
+            latest_declared[g] = {
+                "number": r[g],
+                "date": r["date"],
+                "is_today": (r["date"] == last_row["date"])
+            }
+        else:
+            latest_declared[g] = {"number": "XX", "date": "", "is_today": False}
+
     return jsonify({
         "status": "success",
         "total_days": len(df),
@@ -58,6 +71,7 @@ def api_summary():
             "GBD": last_row.get("GBD", "XX"),
             "GALI": last_row.get("GALI", "XX"),
         },
+        "latest_declared": latest_declared,
         "prev_date": prev_row["date"],
         "prev_results": {
             "DSWR": prev_row.get("DSWR", "XX"),
