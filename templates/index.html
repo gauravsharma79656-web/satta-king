@@ -159,7 +159,7 @@
                     <div class="flex items-center bg-darkbg border border-bordercolor rounded-xl px-2.5 py-1.5 gap-2">
                         <span class="text-xs text-slate-400 font-semibold">Year:</span>
                         <select id="sim-year" class="bg-transparent text-xs text-amber-400 font-bold focus:outline-none cursor-pointer">
-                            <option value="2026">2026</option>
+                            <option value="2026" selected>2026</option>
                             <option value="2025">2025</option>
                             <option value="2024">2024</option>
                             <option value="2023">2023</option>
@@ -170,14 +170,14 @@
                             <option value="2018">2018</option>
                             <option value="2017">2017</option>
                             <option value="2016">2016</option>
-                            <option value="2015" selected>2015</option>
+                            <option value="2015">2015</option>
                         </select>
                     </div>
 
                     <div class="flex items-center bg-darkbg border border-bordercolor rounded-xl px-2.5 py-1.5 gap-2">
                         <span class="text-xs text-slate-400 font-semibold">Month:</span>
                         <select id="sim-month" class="bg-transparent text-xs text-cyan-400 font-bold focus:outline-none cursor-pointer">
-                            <option value="01" selected>01 - Jan</option>
+                            <option value="01">01 - Jan</option>
                             <option value="02">02 - Feb</option>
                             <option value="03">03 - Mar</option>
                             <option value="04">04 - Apr</option>
@@ -186,7 +186,7 @@
                             <option value="07">07 - Jul</option>
                             <option value="08">08 - Aug</option>
                             <option value="09">09 - Sep</option>
-                            <option value="10">10 - Oct</option>
+                            <option value="10" selected>10 - Oct</option>
                             <option value="11">11 - Nov</option>
                             <option value="12">12 - Dec</option>
                         </select>
@@ -425,6 +425,8 @@
         let harufChart = null;
         let currentHotColdGame = 'FRBD';
 
+        let lastKnownSummary = null;
+
         document.addEventListener('DOMContentLoaded', () => {
             initSimulator();
             loadSummary();
@@ -432,9 +434,26 @@
             loadRelations();
             loadHotCold('FRBD');
             loadHistory();
+            // Automatically poll for new live draw results every 25 seconds
+            setInterval(autoCheckForUpdates, 25000);
         });
 
         function initSimulator() {
+            const today = new Date();
+            const currYear = today.getFullYear().toString();
+            const currMonth = String(today.getMonth() + 1).padStart(2, '0');
+            const currDay = String(today.getDate()).padStart(2, '0');
+
+            const yearSelect = document.getElementById('sim-year');
+            if (yearSelect && [...yearSelect.options].some(o => o.value === currYear)) {
+                yearSelect.value = currYear;
+            }
+
+            const monthSelect = document.getElementById('sim-month');
+            if (monthSelect) {
+                monthSelect.value = currMonth;
+            }
+
             const daySelect = document.getElementById('sim-day');
             if (!daySelect) return;
             daySelect.innerHTML = '';
@@ -443,12 +462,53 @@
                 const dStr = d < 10 ? '0' + d : '' + d;
                 opt.value = dStr;
                 opt.textContent = dStr;
-                if (d === 14) opt.selected = true;
+                if (dStr === currDay) opt.selected = true;
                 daySelect.appendChild(opt);
             }
         }
 
-        async function runDateSimulation() {
+        async function autoCheckForUpdates() {
+            try {
+                const res = await fetch(`/api/summary?_t=${Date.now()}`);
+                const data = await res.json();
+                if (data.status === 'success') {
+                    const currentSig = JSON.stringify(data.latest_results) + data.latest_date;
+                    if (lastKnownSummary === null) {
+                        lastKnownSummary = currentSig;
+                        return;
+                    }
+                    if (lastKnownSummary !== currentSig) {
+                        console.log("Live draw update detected from official site:", data.latest_results);
+                        lastKnownSummary = currentSig;
+                        await loadSummary();
+                        await loadPredictions();
+                        await loadHistory();
+                        const simContainer = document.getElementById('sim-results-container');
+                        if (simContainer && !simContainer.classList.contains('hidden')) {
+                            runDateSimulation(true);
+                        }
+                        showLiveUpdateToast();
+                    }
+                }
+            } catch (e) {
+                console.error("Auto check error:", e);
+            }
+        }
+
+        function showLiveUpdateToast() {
+            let toast = document.getElementById('live-toast');
+            if (!toast) {
+                toast = document.createElement('div');
+                toast.id = 'live-toast';
+                toast.className = 'fixed bottom-5 right-5 z-50 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 text-white px-4 py-3 rounded-xl shadow-2xl flex items-center gap-2.5 text-xs font-bold border border-emerald-400/40 transition-all';
+                document.body.appendChild(toast);
+            }
+            toast.innerHTML = '<i class="fa-solid fa-bolt text-amber-300"></i> <span>Live Result Announced & Automatically Updated!</span>';
+            toast.style.display = 'flex';
+            setTimeout(() => { if (toast) toast.style.display = 'none'; }, 6000);
+        }
+
+        async function runDateSimulation(silent = false) {
             const y = document.getElementById('sim-year').value;
             const m = document.getElementById('sim-month').value;
             const d = document.getElementById('sim-day').value;
@@ -456,8 +516,10 @@
 
             const btn = document.getElementById('btn-run-sim');
             const icon = document.getElementById('sim-icon');
-            btn.disabled = true;
-            icon.className = 'fa-solid fa-circle-notch fa-spin';
+            if (!silent) {
+                btn.disabled = true;
+                icon.className = 'fa-solid fa-circle-notch fa-spin';
+            }
 
             try {
                 const res = await fetch(`/api/predict_by_date?date=${targetDate}&_t=${Date.now()}`);

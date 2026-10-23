@@ -185,14 +185,47 @@ def build_full_dataset(years=range(2015, 2027), progress_callback=None):
     sorted_dates = sorted(all_rows.keys())
     data_list = [all_rows[d] for d in sorted_dates]
     df = pd.DataFrame(data_list)
-    df.to_csv(ALL_GAMES_CSV, index=False)
+    save_dataset(df)
     print(f"Dataset successfully compiled: {len(df)} days recorded at {ALL_GAMES_CSV}")
     return df
 
+def save_dataset(df):
+    """Safely saves the dataset to a writable location, handling Vercel serverless read-only filesystems gracefully."""
+    saved = False
+    # 1. Try local data dir if writable (e.g. local environment)
+    if not os.environ.get("VERCEL"):
+        try:
+            if os.path.exists(DATA_DIR) and os.access(DATA_DIR, os.W_OK):
+                df.to_csv(ALL_GAMES_CSV, index=False)
+                saved = True
+        except Exception as e:
+            print(f"Notice: local save to {ALL_GAMES_CSV} not permitted ({e}), falling back to /tmp")
+
+    # 2. On Vercel / serverless environment, /tmp is the only writable filesystem
+    if not saved or os.environ.get("VERCEL"):
+        try:
+            tmp_dir = "/tmp"
+            if os.path.exists(tmp_dir):
+                tmp_csv = os.path.join(tmp_dir, "all_games_dataset.csv")
+                df.to_csv(tmp_csv, index=False)
+                saved = True
+        except Exception as e:
+            print(f"Warning: /tmp write failed: {e}")
+
+    return saved
+
 def get_latest_dataset(force_refresh=False):
-    if force_refresh or not os.path.exists(ALL_GAMES_CSV):
-        return build_full_dataset()
-    return pd.read_csv(ALL_GAMES_CSV, dtype=str)
+    # On Vercel, check /tmp first in case synced data was saved there
+    tmp_csv = "/tmp/all_games_dataset.csv"
+    if not force_refresh and os.path.exists(tmp_csv):
+        try:
+            return pd.read_csv(tmp_csv, dtype=str)
+        except Exception:
+            pass
+
+    if os.path.exists(ALL_GAMES_CSV):
+        return pd.read_csv(ALL_GAMES_CSV, dtype=str)
+    return build_full_dataset()
 
 import time
 
@@ -227,7 +260,7 @@ def sync_latest_today(min_interval=15):
     if updated:
         sorted_dates = sorted(df_dict.keys())
         new_df = pd.DataFrame([df_dict[d] for d in sorted_dates])
-        new_df.to_csv(ALL_GAMES_CSV, index=False)
+        save_dataset(new_df)
         return new_df
     return df
 
