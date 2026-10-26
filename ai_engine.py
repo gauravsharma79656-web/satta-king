@@ -345,44 +345,65 @@ class GamePredictor:
                 "rashi": f"{RASHI_MAP[idx // 10]}{RASHI_MAP[idx % 10]}"
             })
 
-        sorted_andar = np.argsort(full_pa)[::-1]
-        sorted_bahar = np.argsort(full_pb)[::-1]
+        # Compute boosted marginal probabilities from joint jodi_matrix
+        boosted_pa = jodi_matrix.sum(axis=1)
+        boosted_pa = boosted_pa / boosted_pa.sum()
+        boosted_pb = jodi_matrix.sum(axis=0)
+        boosted_pb = boosted_pb / boosted_pb.sum()
+
+        sorted_andar = np.argsort(boosted_pa)[::-1]
+        sorted_bahar = np.argsort(boosted_pb)[::-1]
 
         solid_andar = {
             "primary": int(sorted_andar[0]),
-            "primary_prob": round(float(full_pa[sorted_andar[0]]) * 100, 1),
+            "primary_prob": round(float(boosted_pa[sorted_andar[0]]) * 100, 1),
             "secondary": int(sorted_andar[1]),
-            "secondary_prob": round(float(full_pa[sorted_andar[1]]) * 100, 1),
+            "secondary_prob": round(float(boosted_pa[sorted_andar[1]]) * 100, 1),
             "rashi_primary": RASHI_MAP[int(sorted_andar[0])]
         }
 
         solid_bahar = {
             "primary": int(sorted_bahar[0]),
-            "primary_prob": round(float(full_pb[sorted_bahar[0]]) * 100, 1),
+            "primary_prob": round(float(boosted_pb[sorted_bahar[0]]) * 100, 1),
             "secondary": int(sorted_bahar[1]),
-            "secondary_prob": round(float(full_pb[sorted_bahar[1]]) * 100, 1),
+            "secondary_prob": round(float(boosted_pb[sorted_bahar[1]]) * 100, 1),
             "rashi_primary": RASHI_MAP[int(sorted_bahar[0])]
         }
 
-        # Exactly 6-Digit Crossing Selection
-        raw_pool = [
-            solid_andar["primary"], solid_bahar["primary"],
-            solid_andar["secondary"], solid_bahar["secondary"],
-            solid_andar["rashi_primary"], solid_bahar["rashi_primary"],
-            RASHI_MAP.get(solid_andar["secondary"], -1),
-            RASHI_MAP.get(solid_bahar["secondary"], -1)
-        ]
+        # Optimized 6-Digit Crossing Selection (Dual-Digit Pass Architecture)
+        # Prioritize:
+        # 1. Digits from Top Primary Jodis (ensures Top Jodis are playable in crossing)
+        # 2. Predecessor same-day transfer digits (e.g. morning DSWR for FRBD)
+        # 3. Top Boosted Andar and Bahar marginals
+        # 4. Primary Rashi mirrors
         crossing_pool = []
-        for d in raw_pool:
-            if d >= 0 and d not in crossing_pool:
-                crossing_pool.append(d)
+        def _add_cand(d):
+            if 0 <= d <= 9 and d not in crossing_pool and len(crossing_pool) < 6:
+                crossing_pool.append(int(d))
 
-        # Fill up to exactly 6 digits using top probability distributions
-        for cand in list(sorted_andar) + list(sorted_bahar):
-            if len(crossing_pool) >= 6:
-                break
-            if cand not in crossing_pool:
-                crossing_pool.append(cand)
+        # 1. Digits from Top 3 Primary Jodis
+        for item in top_primary_jodis[:3]:
+            _add_cand(int(item["jodi"][0]))
+            _add_cand(int(item["jodi"][1]))
+
+        # 2. Predecessor same-day transfer digits
+        for d in sorted(list(cross_game_harufs)):
+            _add_cand(d)
+
+        # 3. Top Andar & Bahar Harufs
+        _add_cand(solid_andar["primary"])
+        _add_cand(solid_bahar["primary"])
+        _add_cand(solid_andar["secondary"])
+        _add_cand(solid_bahar["secondary"])
+
+        # 4. Primary Rashi mirrors
+        _add_cand(solid_andar["rashi_primary"])
+        _add_cand(solid_bahar["rashi_primary"])
+
+        # 5. Complete pool from sorted marginal distributions
+        for a_cand, b_cand in zip(sorted_andar, sorted_bahar):
+            _add_cand(a_cand)
+            _add_cand(b_cand)
 
         crossing_digits = [str(d) for d in crossing_pool[:6]]
 
