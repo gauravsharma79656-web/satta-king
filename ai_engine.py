@@ -133,8 +133,8 @@ class GamePredictor:
 
         # 1. Random Forest Classifier
         self.model_andar_rf = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=9,
+            n_estimators=50,
+            max_depth=3,
             min_samples_split=4,
             random_state=42,
             n_jobs=-1
@@ -142,8 +142,8 @@ class GamePredictor:
         self.model_andar_rf.fit(X, y_andar)
 
         self.model_bahar_rf = RandomForestClassifier(
-            n_estimators=100,
-            max_depth=9,
+            n_estimators=50,
+            max_depth=3,
             min_samples_split=4,
             random_state=42,
             n_jobs=-1
@@ -152,17 +152,17 @@ class GamePredictor:
 
         # 2. HistGradientBoostingClassifier
         self.model_andar_hgb = HistGradientBoostingClassifier(
-            max_iter=80,
-            max_depth=6,
-            learning_rate=0.08,
+            max_iter=50,
+            max_depth=3,
+            learning_rate=0.05,
             random_state=42
         )
         self.model_andar_hgb.fit(X, y_andar)
 
         self.model_bahar_hgb = HistGradientBoostingClassifier(
-            max_iter=80,
-            max_depth=6,
-            learning_rate=0.08,
+            max_iter=50,
+            max_depth=3,
+            learning_rate=0.05,
             random_state=42
         )
         self.model_bahar_hgb.fit(X, y_bahar)
