@@ -818,13 +818,31 @@
                 const b = backtests[gameKey] || {};
                 const meta = gameMeta[gameKey];
 
-                const isDeclared = p.current_status.includes('Result Out');
-                const badgeColor = isDeclared ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40' : 'bg-amber-900/60 text-amber-300 border-amber-600/40';
+                const isNextDay = !!p.is_next_day;
+                const isDeclared = p.current_status && p.current_status.includes('Result Out');
+                let badgeColor = 'bg-amber-900/60 text-amber-300 border-amber-600/40';
+                let badgeIcon = '';
+
+                if (isNextDay) {
+                    badgeColor = 'bg-indigo-900/70 text-indigo-200 border-indigo-500/50 shadow-sm';
+                    badgeIcon = '<i class="fa-solid fa-forward text-amber-400 mr-1"></i>';
+                } else if (isDeclared) {
+                    badgeColor = 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40';
+                    badgeIcon = '<i class="fa-solid fa-check mr-1"></i>';
+                }
+
+                const timeSub = isNextDay
+                    ? `<span class="text-indigo-400 font-semibold">Tomorrow ${meta.time}</span>${p.today_declared ? ` • <span class="text-emerald-400 font-bold">Today: ${p.today_declared}</span>` : ''}`
+                    : `Draw Time: ${meta.time}`;
+
+                const topPickLabel = isNextDay
+                    ? `Top Pick for Tomorrow (${p.prediction_for_date ? p.prediction_for_date.slice(5) : ''})`
+                    : `Top Recommended Jodi`;
 
                 const topJodi = p.top_primary_jodis[0];
 
                 const cardHtml = `
-                    <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-xl flex flex-col justify-between hover:border-slate-500 transition-all">
+                    <div class="bg-cardbg border ${isNextDay ? 'border-indigo-500/40 shadow-indigo-950/20' : 'border-bordercolor'} rounded-2xl p-4 shadow-xl flex flex-col justify-between hover:border-slate-500 transition-all">
                         <div>
                             <!-- Header -->
                             <div class="flex items-center justify-between border-b border-bordercolor pb-2.5 mb-3">
@@ -833,16 +851,16 @@
                                         <i class="fa-solid ${meta.icon} text-${meta.color}-400"></i>
                                         ${meta.name} (${gameKey})
                                     </div>
-                                    <div class="text-[11px] text-slate-500">Draw Time: ${meta.time}</div>
+                                    <div class="text-[11px] text-slate-500">${timeSub}</div>
                                 </div>
                                 <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${badgeColor}">
-                                    ${p.current_status}
+                                    ${badgeIcon} ${p.current_status}
                                 </span>
                             </div>
 
                             <!-- Main Top Pick Box -->
-                            <div class="bg-darkbg/80 border border-bordercolor rounded-xl p-3 text-center mb-3">
-                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Top Recommended Jodi</span>
+                            <div class="bg-darkbg/80 border ${isNextDay ? 'border-indigo-500/30' : 'border-bordercolor'} rounded-xl p-3 text-center mb-3">
+                                <span class="text-[10px] ${isNextDay ? 'text-indigo-300' : 'text-slate-400'} font-bold uppercase tracking-wider block">${topPickLabel}</span>
                                 <div class="text-4xl font-black text-amber-400 font-mono tracking-tight my-1">
                                     ${topJodi ? topJodi.jodi : '--'}
                                 </div>
