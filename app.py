@@ -10,6 +10,21 @@ from ai_engine import AIModelManager, GamePredictor, MODELS_DIR
 
 app = Flask(__name__)
 
+GAMES_LIST = ["DSWR", "DLBZ", "SRGN", "FRBD", "GBD", "GALI"]
+GAME_ALIASES = {
+    "DELHI_BAZAR": "DLBZ",
+    "DELHIBAZAR": "DLBZ",
+    "DB": "DLBZ",
+    "SHRI_GANESH": "SRGN",
+    "SHRIGANESH": "SRGN",
+    "SG": "SRGN",
+    "DESAWAR": "DSWR",
+    "DISAWAR": "DSWR",
+    "FARIDABAD": "FRBD",
+    "GHAZIABAD": "GBD",
+    "GALI": "GALI"
+}
+
 # Global instances
 ai_manager = AIModelManager()
 cached_dataset = None
@@ -49,8 +64,8 @@ def api_summary():
     prev_row = df.iloc[-2].to_dict() if len(df) > 1 else last_row
 
     latest_declared = {}
-    for g in ["DSWR", "FRBD", "GBD", "GALI"]:
-        valid = df[df[g] != "XX"]
+    for g in GAMES_LIST:
+        valid = df[df[g] != "XX"] if g in df.columns else pd.DataFrame()
         if not valid.empty:
             r = valid.iloc[-1]
             latest_declared[g] = {
@@ -65,20 +80,10 @@ def api_summary():
         "status": "success",
         "total_days": len(df),
         "latest_date": last_row["date"],
-        "latest_results": {
-            "DSWR": last_row.get("DSWR", "XX"),
-            "FRBD": last_row.get("FRBD", "XX"),
-            "GBD": last_row.get("GBD", "XX"),
-            "GALI": last_row.get("GALI", "XX"),
-        },
+        "latest_results": {g: last_row.get(g, "XX") for g in GAMES_LIST},
         "latest_declared": latest_declared,
         "prev_date": prev_row["date"],
-        "prev_results": {
-            "DSWR": prev_row.get("DSWR", "XX"),
-            "FRBD": prev_row.get("FRBD", "XX"),
-            "GBD": prev_row.get("GBD", "XX"),
-            "GALI": prev_row.get("GALI", "XX"),
-        }
+        "prev_results": {g: prev_row.get(g, "XX") for g in GAMES_LIST}
     })
 
 @app.route("/api/predict_all", methods=["GET"])
@@ -114,10 +119,7 @@ def api_predict_by_date():
         target_idx = date_matches.index[0]
         actual_row = df.iloc[target_idx].to_dict()
         actual_results = {
-            "DSWR": str(actual_row.get("DSWR", "XX")).strip(),
-            "FRBD": str(actual_row.get("FRBD", "XX")).strip(),
-            "GBD": str(actual_row.get("GBD", "XX")).strip(),
-            "GALI": str(actual_row.get("GALI", "XX")).strip(),
+            g: str(actual_row.get(g, "XX")).strip() for g in GAMES_LIST
         }
         has_actual = any(v not in ["XX", ""] for v in actual_results.values())
 
@@ -132,23 +134,19 @@ def api_predict_by_date():
             refresh_predictions()
         predictions = cached_predictions
     else:
-        for game in ["DSWR", "FRBD", "GBD", "GALI"]:
+        for game in GAMES_LIST:
             if not date_matches.empty:
                 df_eval = df.iloc[:target_idx+1].copy()
                 # Follow real-world sequential order within the day:
-                if game == "DSWR":
-                    df_eval.loc[target_idx, ["DSWR", "FRBD", "GBD", "GALI"]] = ["XX", "XX", "XX", "XX"]
-                elif game == "FRBD":
-                    df_eval.loc[target_idx, ["FRBD", "GBD", "GALI"]] = ["XX", "XX", "XX"]
-                elif game == "GBD":
-                    df_eval.loc[target_idx, ["GBD", "GALI"]] = ["XX", "XX"]
-                elif game == "GALI":
-                    df_eval.loc[target_idx, ["GALI"]] = ["XX"]
+                g_idx = GAMES_LIST.index(game)
+                hide_cols = [c for c in GAMES_LIST[g_idx:] if c in df_eval.columns]
+                df_eval.loc[target_idx, hide_cols] = ["XX"] * len(hide_cols)
             else:
                 df_eval = df.copy()
-                df_eval = pd.concat([df_eval, pd.DataFrame([{
-                    "date": target_date, "DSWR": "XX", "FRBD": "XX", "GBD": "XX", "GALI": "XX"
-                }])], ignore_index=True)
+                new_row_dict = {"date": target_date}
+                for g in GAMES_LIST:
+                    new_row_dict[g] = "XX"
+                df_eval = pd.concat([df_eval, pd.DataFrame([new_row_dict])], ignore_index=True)
 
             pkl_path = os.path.join(MODELS_DIR, f"{game}_predictor.pkl")
             if os.path.exists(pkl_path):
@@ -172,7 +170,7 @@ def api_predict_by_date():
             predictions[game] = res
 
     # Compute verdicts against actual results
-    for game in ["DSWR", "FRBD", "GBD", "GALI"]:
+    for game in GAMES_LIST:
         res = predictions[game]
         if has_actual and actual_results.get(game) not in ["XX", None, ""]:
             actual_val = actual_results[game]
@@ -213,16 +211,16 @@ def api_predict_by_date():
 
 @app.route("/api/predict/<game>", methods=["GET"])
 def api_predict_game(game):
-    game = game.upper()
-    if game not in ["DSWR", "FRBD", "GBD", "GALI"]:
-        return jsonify({"status": "error", "message": "Invalid game"}), 400
+    g_key = GAME_ALIASES.get(game.upper(), game.upper())
+    if g_key not in GAMES_LIST:
+        return jsonify({"status": "error", "message": f"Invalid game '{game}'. Valid: {GAMES_LIST}"}), 400
     df = get_df()
-    predictor = ai_manager.get_predictor(game, df)
+    predictor = ai_manager.get_predictor(g_key, df)
     pred = predictor.predict_next()
     backtest = predictor.evaluate_backtest(test_draws=30)
     return jsonify({
         "status": "success",
-        "game": game,
+        "game": g_key,
         "prediction": pred,
         "backtest": backtest
     })
@@ -248,7 +246,8 @@ def api_relations():
 @app.route("/api/hotcold/<game>", methods=["GET"])
 def api_hotcold(game):
     game = game.upper()
-    if game not in ["DSWR", "FRBD", "GBD", "GALI"]:
+    game = GAME_ALIASES.get(game.upper(), game.upper())
+    if game not in GAMES_LIST:
         game = "FRBD"
     df = get_df()
     analyzer = RelationAnalyzer(df)

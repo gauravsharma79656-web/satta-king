@@ -22,7 +22,9 @@ class GamePredictor:
         self._prepare_dataset()
 
     def _prepare_dataset(self):
-        for col in ["DSWR", "FRBD", "GBD", "GALI"]:
+        all_cand_games = ["DSWR", "DLBZ", "SRGN", "FRBD", "GBD", "GALI"]
+        active_games = [c for c in all_cand_games if c in self.df.columns]
+        for col in active_games:
             self.df[col + "_num"] = pd.to_numeric(self.df[col], errors="coerce").fillna(-1).astype(int)
             self.df[col + "_tens"] = self.df[col + "_num"].apply(lambda v: v // 10 if v >= 0 else -1)
             self.df[col + "_ones"] = self.df[col + "_num"].apply(lambda v: v % 10 if v >= 0 else -1)
@@ -43,7 +45,7 @@ class GamePredictor:
         self.month_arr = self.df["month"].values
 
         self.game_data = {}
-        for g in ["DSWR", "FRBD", "GBD", "GALI"]:
+        for g in active_games:
             self.game_data[g] = {
                 "num": self.df[g + "_num"].values,
                 "tens": self.df[g + "_tens"].values,
@@ -73,9 +75,11 @@ class GamePredictor:
             "month": self.month_arr[idx]
         }
 
-        # Preceding games on same day
+        # Preceding games on same day (Preserving exact existing logic for DSWR, FRBD, GBD, GALI)
         same_day_order = {
             "DSWR": [],
+            "DLBZ": ["DSWR"],
+            "SRGN": ["DLBZ", "DSWR"],
             "FRBD": ["DSWR"],
             "GBD": ["DSWR", "FRBD"],
             "GALI": ["DSWR", "FRBD", "GBD"]
@@ -285,6 +289,8 @@ class GamePredictor:
         # (Literal Harufs, Rashi Mirrors, Sum/Jod, and Difference)
         same_day_order = {
             "DSWR": [],
+            "DLBZ": ["DSWR"],
+            "SRGN": ["DLBZ", "DSWR"],
             "FRBD": ["DSWR"],
             "GBD": ["FRBD", "DSWR"],
             "GALI": ["GBD", "FRBD", "DSWR"]
@@ -534,7 +540,7 @@ class AIModelManager:
     def predict_all(self, df):
         results = {}
         backtests = {}
-        for game in ["DSWR", "FRBD", "GBD", "GALI"]:
+        for game in ["DSWR", "DLBZ", "SRGN", "FRBD", "GBD", "GALI"]:
             p = self.get_predictor(game, df)
             results[game] = p.predict_next()
             backtests[game] = p.evaluate_backtest(test_draws=30)

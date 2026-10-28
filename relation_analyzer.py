@@ -30,7 +30,7 @@ class RelationAnalyzer:
 
     def _prepare_data(self):
         # Convert non-digits to NaN
-        for col in ["DSWR", "FRBD", "GBD", "GALI"]:
+        for col in ["DSWR", "DLBZ", "SRGN", "FRBD", "GBD", "GALI"]:
             if col in self.df.columns:
                 self.df[col + "_num"] = pd.to_numeric(self.df[col], errors="coerce")
                 self.df[col + "_tens"] = self.df[col + "_num"].apply(lambda v: int(v // 10) if pd.notna(v) else np.nan)
@@ -38,26 +38,25 @@ class RelationAnalyzer:
                 self.df[col + "_sum"] = self.df[col + "_num"].apply(lambda v: int((v // 10 + v % 10) % 10) if pd.notna(v) else np.nan)
 
     def compute_game_correlations(self):
-        """Pearson correlation matrix between the 4 games."""
-        num_cols = ["DSWR_num", "FRBD_num", "GBD_num", "GALI_num"]
+        """Pearson correlation matrix between active games."""
+        active_games = [c for c in ["DSWR", "DLBZ", "SRGN", "FRBD", "GBD", "GALI"] if c in self.df.columns]
+        num_cols = [c + "_num" for c in active_games]
         sub_df = self.df[num_cols].dropna()
         corr = sub_df.corr()
-        corr.columns = ["DSWR", "FRBD", "GBD", "GALI"]
-        corr.index = ["DSWR", "FRBD", "GBD", "GALI"]
+        corr.columns = active_games
+        corr.index = active_games
         return corr.round(3).to_dict()
 
     def compute_haruf_transfer_rates(self):
         """
         How often does any digit from Game A appear in Game B?
         Pairs in chronological order:
-        1. Same day: DSWR -> FRBD
-        2. Same day: FRBD -> GBD
-        3. Same day: GBD -> GALI
-        4. Cross day: GALI (t) -> DSWR (t+1)
-        5. Same day: DSWR -> GBD
-        6. Same day: DSWR -> GALI
+        DSWR -> DLBZ -> SRGN -> FRBD -> GBD -> GALI -> DSWR (next day)
         """
         pairs = [
+            ("DSWR", "DLBZ", "same_day"),
+            ("DLBZ", "SRGN", "same_day"),
+            ("SRGN", "FRBD", "same_day"),
             ("DSWR", "FRBD", "same_day"),
             ("FRBD", "GBD", "same_day"),
             ("GBD", "GALI", "same_day"),
@@ -68,6 +67,8 @@ class RelationAnalyzer:
 
         results = {}
         for g1, g2, timing in pairs:
+            if f"{g1}_num" not in self.df.columns or f"{g2}_num" not in self.df.columns:
+                continue
             total = 0
             hits_direct = 0
             hits_andar = 0

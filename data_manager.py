@@ -76,11 +76,39 @@ def scrape_month(year, month_num, month_name):
                     records.append({
                         "date": date_str,
                         "DSWR": dswr,
+                        "DLBZ": "XX",
+                        "SRGN": "XX",
                         "FRBD": frbd,
                         "GBD": gbd,
                         "GALI": gali
                     })
                 break
+
+        # Also extract regional live results (Delhi Bazar and Shri Ganesh) from home page
+        reg_data = {}
+        for t in tables:
+            t_text = t.get_text()
+            if "DELHI BAZAR" in t_text and "SHRI GANESH" in t_text:
+                for r in t.find_all("tr"):
+                    txt = r.get_text(strip=True).upper()
+                    cells = [clean_cell(c.get_text(strip=True)) for c in r.find_all(["td", "th"])]
+                    if "DELHI BAZAR" in txt and "DELHI BAZAR DAY" not in txt:
+                        vals = [c for c in cells if c != ""]
+                        if len(vals) >= 2:
+                            reg_data["DLBZ_yest"] = vals[-2]
+                            reg_data["DLBZ_today"] = vals[-1]
+                    elif "SHRI GANESH" in txt:
+                        vals = [c for c in cells if c != ""]
+                        if len(vals) >= 2:
+                            reg_data["SRGN_yest"] = vals[-2]
+                            reg_data["SRGN_today"] = vals[-1]
+
+        if records and len(records) >= 1:
+            if "DLBZ_today" in reg_data: records[-1]["DLBZ"] = reg_data["DLBZ_today"]
+            if "SRGN_today" in reg_data: records[-1]["SRGN"] = reg_data["SRGN_today"]
+        if records and len(records) >= 2:
+            if "DLBZ_yest" in reg_data: records[-2]["DLBZ"] = reg_data["DLBZ_yest"]
+            if "SRGN_yest" in reg_data: records[-2]["SRGN"] = reg_data["SRGN_yest"]
     except Exception as e:
         print(f"Error scraping {year}-{month_num}: {e}")
     return records
@@ -116,11 +144,39 @@ def fetch_live_table():
                     records.append({
                         "date": date_str,
                         "DSWR": dswr,
+                        "DLBZ": "XX",
+                        "SRGN": "XX",
                         "FRBD": frbd,
                         "GBD": gbd,
                         "GALI": gali
                     })
                 break
+
+        # Also extract regional live results (Delhi Bazar and Shri Ganesh) from home page
+        reg_data = {}
+        for t in tables:
+            t_text = t.get_text()
+            if "DELHI BAZAR" in t_text and "SHRI GANESH" in t_text:
+                for r in t.find_all("tr"):
+                    txt = r.get_text(strip=True).upper()
+                    cells = [clean_cell(c.get_text(strip=True)) for c in r.find_all(["td", "th"])]
+                    if "DELHI BAZAR" in txt and "DELHI BAZAR DAY" not in txt:
+                        vals = [c for c in cells if c != ""]
+                        if len(vals) >= 2:
+                            reg_data["DLBZ_yest"] = vals[-2]
+                            reg_data["DLBZ_today"] = vals[-1]
+                    elif "SHRI GANESH" in txt:
+                        vals = [c for c in cells if c != ""]
+                        if len(vals) >= 2:
+                            reg_data["SRGN_yest"] = vals[-2]
+                            reg_data["SRGN_today"] = vals[-1]
+
+        if records and len(records) >= 1:
+            if "DLBZ_today" in reg_data: records[-1]["DLBZ"] = reg_data["DLBZ_today"]
+            if "SRGN_today" in reg_data: records[-1]["SRGN"] = reg_data["SRGN_today"]
+        if records and len(records) >= 2:
+            if "DLBZ_yest" in reg_data: records[-2]["DLBZ"] = reg_data["DLBZ_yest"]
+            if "SRGN_yest" in reg_data: records[-2]["SRGN"] = reg_data["SRGN_yest"]
     except Exception as e:
         print(f"Error fetching live table: {e}")
     return records
@@ -249,8 +305,8 @@ def sync_latest_today(min_interval=15):
     for r in live_rows:
         d = r["date"]
         if d in df_dict:
-            for k in ["DSWR", "FRBD", "GBD", "GALI"]:
-                if r[k] != "XX" and df_dict[d][k] != r[k]:
+            for k in ["DSWR", "DLBZ", "SRGN", "FRBD", "GBD", "GALI"]:
+                if k in r and r[k] != "XX" and df_dict[d].get(k, "XX") != r[k]:
                     df_dict[d][k] = r[k]
                     updated = True
         else:
