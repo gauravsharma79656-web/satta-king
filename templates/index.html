@@ -559,10 +559,11 @@
             };
 
             ['DSWR', 'FRBD', 'GBD', 'GALI'].forEach(gameKey => {
+                if (!data.predictions || !data.predictions[gameKey]) return;
                 const p = data.predictions[gameKey];
-                const v = data.verdicts[gameKey];
-                const meta = gameMeta[gameKey];
-                const topJodi = p.top_primary_jodis[0];
+                const v = data.verdicts ? data.verdicts[gameKey] : null;
+                const meta = gameMeta[gameKey] || { name: gameKey, color: 'slate', icon: 'fa-dice', time: '' };
+                const topJodi = (p.top_primary_jodis && p.top_primary_jodis.length > 0) ? p.top_primary_jodis[0] : null;
 
                 let verdictBadges = '';
                 if (v && v.actual && v.actual !== 'XX') {
@@ -786,14 +787,15 @@
             const order = ['FRBD', 'GBD', 'GALI', 'DSWR'];
 
             order.forEach(gameKey => {
+                if (!predictions || !predictions[gameKey]) return;
                 const p = predictions[gameKey];
-                const b = backtests[gameKey] || {};
-                const meta = gameMeta[gameKey];
+                const b = backtests ? (backtests[gameKey] || {}) : {};
+                const meta = gameMeta[gameKey] || { name: gameKey, color: 'slate', icon: 'fa-dice', time: '' };
 
-                const isDeclared = p.current_status.includes('Result Out');
+                const isDeclared = p.current_status && p.current_status.includes('Result Out');
                 const badgeColor = isDeclared ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40' : 'bg-amber-900/60 text-amber-300 border-amber-600/40';
 
-                const topJodi = p.top_primary_jodis[0];
+                const topJodi = (p.top_primary_jodis && p.top_primary_jodis.length > 0) ? p.top_primary_jodis[0] : null;
 
                 const cardHtml = `
                     <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-xl flex flex-col justify-between hover:border-slate-500 transition-all">
