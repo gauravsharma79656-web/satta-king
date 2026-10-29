@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Number Predictor & Game Relation Analyzer (DSWR, DLBZ, SRGN, FRBD, GBD, GALI)</title>
+    <title>Number Predictor & Game Relation Analyzer (FRBD, GBD, GALI, DSWR)</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     <!-- Chart.js -->
@@ -64,7 +64,7 @@
                         </span>
                     </h1>
                     <p class="text-xs text-slate-400">
-                        DSWR • DLBZ • SRGN • FRBD • GBD • GALI &nbsp;|&nbsp; Source: <a href="https://satta-king-fast.com" target="_blank" class="text-cyan-400 hover:underline">satta-king-fast.com</a>
+                        FRBD • GBD • GALI • DSWR &nbsp;|&nbsp; Source: <a href="https://satta-king-fast.com" target="_blank" class="text-cyan-400 hover:underline">satta-king-fast.com</a>
                     </p>
                 </div>
             </div>
@@ -83,7 +83,7 @@
     <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
 
         <!-- Status Summary Bar -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
             <div class="bg-cardbg border border-bordercolor rounded-xl p-3 flex flex-col justify-between">
                 <span class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Latest Draw Date</span>
                 <span id="stat-date" class="text-base font-bold text-white mt-1">Loading...</span>
@@ -99,31 +99,13 @@
                 <div id="stat-dswr-val" class="text-2xl font-black text-amber-400 px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/30">--</div>
             </div>
 
-            <!-- DLBZ Result -->
-            <div class="bg-cardbg border border-bordercolor rounded-xl p-3 flex items-center justify-between">
-                <div>
-                    <span class="text-xs text-emerald-400 font-bold uppercase tracking-wider">DLBZ</span>
-                    <div id="stat-dlbz-status" class="text-xs text-slate-400">Afternoon 3:00 PM</div>
-                </div>
-                <div id="stat-dlbz-val" class="text-2xl font-black text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/30 font-mono">--</div>
-            </div>
-
-            <!-- SRGN Result -->
-            <div class="bg-cardbg border border-bordercolor rounded-xl p-3 flex items-center justify-between">
-                <div>
-                    <span class="text-xs text-rose-400 font-bold uppercase tracking-wider">SRGN</span>
-                    <div id="stat-srgn-status" class="text-xs text-slate-400">Eve 4:30 PM</div>
-                </div>
-                <div id="stat-srgn-val" class="text-2xl font-black text-rose-400 px-2 py-0.5 rounded bg-rose-500/10 border border-rose-500/30 font-mono">--</div>
-            </div>
-
             <!-- FRBD Result -->
             <div class="bg-cardbg border border-bordercolor rounded-xl p-3 flex items-center justify-between">
                 <div>
                     <span class="text-xs text-cyan-400 font-bold uppercase tracking-wider">FRBD</span>
                     <div id="stat-frbd-status" class="text-xs text-slate-400">Eve 6:15 PM</div>
                 </div>
-                <div id="stat-frbd-val" class="text-2xl font-black text-cyan-400 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30 font-mono">--</div>
+                <div id="stat-frbd-val" class="text-2xl font-black text-cyan-400 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/30">--</div>
             </div>
 
             <!-- GBD Result -->
@@ -132,7 +114,7 @@
                     <span class="text-xs text-indigo-400 font-bold uppercase tracking-wider">GBD</span>
                     <div id="stat-gbd-status" class="text-xs text-slate-400">Night 8:30 PM</div>
                 </div>
-                <div id="stat-gbd-val" class="text-2xl font-black text-indigo-400 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 font-mono">--</div>
+                <div id="stat-gbd-val" class="text-2xl font-black text-indigo-400 px-2 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30">--</div>
             </div>
 
             <!-- GALI Result -->
@@ -141,7 +123,7 @@
                     <span class="text-xs text-purple-400 font-bold uppercase tracking-wider">GALI</span>
                     <div id="stat-gali-status" class="text-xs text-slate-400">Night 11:30 PM</div>
                 </div>
-                <div id="stat-gali-val" class="text-2xl font-black text-purple-400 px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30 font-mono">--</div>
+                <div id="stat-gali-val" class="text-2xl font-black text-purple-400 px-2 py-0.5 rounded bg-purple-500/10 border border-purple-500/30">--</div>
             </div>
 
             <!-- Model Health -->
@@ -150,7 +132,7 @@
                 <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5 mt-1">
                     <i class="fa-solid fa-check-circle"></i> Trained & Active
                 </span>
-                <span class="text-[11px] text-slate-400">4,319+ Draws (2015-2026)</span>
+                <span class="text-[11px] text-slate-400">4,313+ Draws (2015-2026)</span>
             </div>
         </div>
 
@@ -230,7 +212,7 @@
                     <span id="sim-target-label" class="font-bold text-white text-sm">Target Date: ...</span>
                     <span id="sim-verdict-summary" class="font-semibold text-amber-400">Comparing with historical records...</span>
                 </div>
-                <div id="sim-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div id="sim-cards-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                     <!-- Injected dynamically -->
                 </div>
             </div>
@@ -246,7 +228,7 @@
                 <span class="text-xs text-slate-400">Ensemble of Random Forest, Markov Chain & Haruf Transfer</span>
             </div>
 
-            <div id="prediction-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div id="prediction-cards-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <!-- Cards injected dynamically via JS -->
                 <div class="col-span-full text-center py-12 text-slate-400">
                     <i class="fa-solid fa-circle-notch fa-spin text-3xl text-amber-500 mb-3"></i>
@@ -266,7 +248,7 @@
                     <p class="text-xs text-slate-400 mt-0.5">Statistical digit passing patterns between consecutive draws</p>
                 </div>
                 <div class="text-xs text-slate-400 bg-darkbg px-3 py-1.5 rounded-lg border border-bordercolor">
-                    Sequence: <span class="text-amber-400 font-semibold">DSWR</span> ➔ <span class="text-emerald-400 font-semibold">DLBZ</span> ➔ <span class="text-rose-400 font-semibold">SRGN</span> ➔ <span class="text-cyan-400 font-semibold">FRBD</span> ➔ <span class="text-indigo-400 font-semibold">GBD</span> ➔ <span class="text-purple-400 font-semibold">GALI</span> ➔ <span class="text-amber-400 font-semibold">DSWR (next)</span>
+                    Sequence: <span class="text-amber-400 font-semibold">DSWR</span> ➔ <span class="text-cyan-400 font-semibold">FRBD</span> ➔ <span class="text-indigo-400 font-semibold">GBD</span> ➔ <span class="text-purple-400 font-semibold">GALI</span> ➔ <span class="text-amber-400 font-semibold">DSWR (next)</span>
                 </div>
             </div>
 
@@ -342,9 +324,7 @@
                         <i class="fa-solid fa-fire text-orange-500"></i>
                         Hot & Cold Jodis (Last 100 Draws)
                     </h3>
-                    <div class="flex flex-wrap gap-1">
-                        <button onclick="changeHotColdGame('DLBZ')" id="btn-hc-DLBZ" class="px-2 py-0.5 rounded text-[11px] font-bold bg-darkbg text-slate-300 border border-bordercolor">DLBZ</button>
-                        <button onclick="changeHotColdGame('SRGN')" id="btn-hc-SRGN" class="px-2 py-0.5 rounded text-[11px] font-bold bg-darkbg text-slate-300 border border-bordercolor">SRGN</button>
+                    <div class="flex space-x-1">
                         <button onclick="changeHotColdGame('FRBD')" id="btn-hc-FRBD" class="px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500 text-slate-950">FRBD</button>
                         <button onclick="changeHotColdGame('GBD')" id="btn-hc-GBD" class="px-2 py-0.5 rounded text-[11px] font-bold bg-darkbg text-slate-300 border border-bordercolor">GBD</button>
                         <button onclick="changeHotColdGame('GALI')" id="btn-hc-GALI" class="px-2 py-0.5 rounded text-[11px] font-bold bg-darkbg text-slate-300 border border-bordercolor">GALI</button>
@@ -419,11 +399,9 @@
                     <thead class="bg-slate-900/90 text-slate-400 text-[11px] uppercase sticky top-0 border-b border-bordercolor">
                         <tr>
                             <th class="p-2.5">Date</th>
-                            <th class="p-2.5 text-amber-400 font-bold">DSWR</th>
-                            <th class="p-2.5 text-emerald-400 font-bold">DLBZ</th>
-                            <th class="p-2.5 text-rose-400 font-bold">SRGN</th>
-                            <th class="p-2.5 text-cyan-400 font-bold">FRBD</th>
-                            <th class="p-2.5 text-indigo-400 font-bold">GBD</th>
+                            <th class="p-2.5 text-amber-400 font-bold">DSWR (Desawar)</th>
+                            <th class="p-2.5 text-cyan-400 font-bold">FRBD (Faridabad)</th>
+                            <th class="p-2.5 text-indigo-400 font-bold">GBD (Ghaziabad)</th>
                             <th class="p-2.5 text-purple-400 font-bold">GALI</th>
                         </tr>
                     </thead>
@@ -575,14 +553,12 @@
 
             const gameMeta = {
                 'DSWR': { name: 'Desawar', color: 'amber', icon: 'fa-crown', time: '5:00 AM' },
-                'DLBZ': { name: 'Delhi Bazar', color: 'emerald', icon: 'fa-landmark', time: '3:00 PM' },
-                'SRGN': { name: 'Shri Ganesh', color: 'rose', icon: 'fa-gem', time: '4:30 PM' },
                 'FRBD': { name: 'Faridabad', color: 'cyan', icon: 'fa-sun', time: '6:15 PM' },
                 'GBD': { name: 'Ghaziabad', color: 'indigo', icon: 'fa-city', time: '8:30 PM' },
                 'GALI': { name: 'Gali', color: 'purple', icon: 'fa-moon', time: '11:30 PM' }
             };
 
-            ['DSWR', 'DLBZ', 'SRGN', 'FRBD', 'GBD', 'GALI'].forEach(gameKey => {
+            ['DSWR', 'FRBD', 'GBD', 'GALI'].forEach(gameKey => {
                 const p = data.predictions[gameKey];
                 const v = data.verdicts[gameKey];
                 const meta = gameMeta[gameKey];
@@ -739,8 +715,6 @@
 
                     const decl = data.latest_declared || {};
                     renderGameCard('dswr', data.latest_results.DSWR, decl.DSWR, 'Morning 5:00 AM');
-                    renderGameCard('dlbz', data.latest_results.DLBZ, decl.DLBZ, 'Afternoon 3:00 PM');
-                    renderGameCard('srgn', data.latest_results.SRGN, decl.SRGN, 'Eve 4:30 PM');
                     renderGameCard('frbd', data.latest_results.FRBD, decl.FRBD, 'Eve 6:15 PM');
                     renderGameCard('gbd', data.latest_results.GBD, decl.GBD, 'Night 8:30 PM');
                     renderGameCard('gali', data.latest_results.GALI, decl.GALI, 'Night 11:30 PM');
@@ -803,46 +777,26 @@
             container.innerHTML = '';
 
             const gameMeta = {
-                'DLBZ': { name: 'Delhi Bazar', color: 'emerald', icon: 'fa-landmark', time: '3:00 PM' },
-                'SRGN': { name: 'Shri Ganesh', color: 'rose', icon: 'fa-gem', time: '4:30 PM' },
                 'FRBD': { name: 'Faridabad', color: 'cyan', icon: 'fa-sun', time: '6:15 PM' },
                 'GBD': { name: 'Ghaziabad', color: 'indigo', icon: 'fa-city', time: '8:30 PM' },
                 'GALI': { name: 'Gali', color: 'purple', icon: 'fa-moon', time: '11:30 PM' },
                 'DSWR': { name: 'Desawar', color: 'amber', icon: 'fa-crown', time: '5:00 AM' }
             };
 
-            const order = ['DLBZ', 'SRGN', 'FRBD', 'GBD', 'GALI', 'DSWR'];
+            const order = ['FRBD', 'GBD', 'GALI', 'DSWR'];
 
             order.forEach(gameKey => {
                 const p = predictions[gameKey];
                 const b = backtests[gameKey] || {};
                 const meta = gameMeta[gameKey];
 
-                const isNextDay = !!p.is_next_day;
-                const isDeclared = p.current_status && p.current_status.includes('Result Out');
-                let badgeColor = 'bg-amber-900/60 text-amber-300 border-amber-600/40';
-                let badgeIcon = '';
-
-                if (isNextDay) {
-                    badgeColor = 'bg-indigo-900/70 text-indigo-200 border-indigo-500/50 shadow-sm';
-                    badgeIcon = '<i class="fa-solid fa-forward text-amber-400 mr-1"></i>';
-                } else if (isDeclared) {
-                    badgeColor = 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40';
-                    badgeIcon = '<i class="fa-solid fa-check mr-1"></i>';
-                }
-
-                const timeSub = isNextDay
-                    ? `<span class="text-indigo-400 font-semibold">Tomorrow ${meta.time}</span>${p.today_declared ? ` • <span class="text-emerald-400 font-bold">Today: ${p.today_declared}</span>` : ''}`
-                    : `Draw Time: ${meta.time}`;
-
-                const topPickLabel = isNextDay
-                    ? `Top Pick for Tomorrow (${p.prediction_for_date ? p.prediction_for_date.slice(5) : ''})`
-                    : `Top Recommended Jodi`;
+                const isDeclared = p.current_status.includes('Result Out');
+                const badgeColor = isDeclared ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40' : 'bg-amber-900/60 text-amber-300 border-amber-600/40';
 
                 const topJodi = p.top_primary_jodis[0];
 
                 const cardHtml = `
-                    <div class="bg-cardbg border ${isNextDay ? 'border-indigo-500/40 shadow-indigo-950/20' : 'border-bordercolor'} rounded-2xl p-4 shadow-xl flex flex-col justify-between hover:border-slate-500 transition-all">
+                    <div class="bg-cardbg border border-bordercolor rounded-2xl p-4 shadow-xl flex flex-col justify-between hover:border-slate-500 transition-all">
                         <div>
                             <!-- Header -->
                             <div class="flex items-center justify-between border-b border-bordercolor pb-2.5 mb-3">
@@ -851,16 +805,16 @@
                                         <i class="fa-solid ${meta.icon} text-${meta.color}-400"></i>
                                         ${meta.name} (${gameKey})
                                     </div>
-                                    <div class="text-[11px] text-slate-500">${timeSub}</div>
+                                    <div class="text-[11px] text-slate-500">Draw Time: ${meta.time}</div>
                                 </div>
                                 <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${badgeColor}">
-                                    ${badgeIcon} ${p.current_status}
+                                    ${p.current_status}
                                 </span>
                             </div>
 
                             <!-- Main Top Pick Box -->
-                            <div class="bg-darkbg/80 border ${isNextDay ? 'border-indigo-500/30' : 'border-bordercolor'} rounded-xl p-3 text-center mb-3">
-                                <span class="text-[10px] ${isNextDay ? 'text-indigo-300' : 'text-slate-400'} font-bold uppercase tracking-wider block">${topPickLabel}</span>
+                            <div class="bg-darkbg/80 border border-bordercolor rounded-xl p-3 text-center mb-3">
+                                <span class="text-[10px] text-slate-400 font-bold uppercase tracking-wider block">Top Recommended Jodi</span>
                                 <div class="text-4xl font-black text-amber-400 font-mono tracking-tight my-1">
                                     ${topJodi ? topJodi.jodi : '--'}
                                 </div>
@@ -968,9 +922,8 @@
 
         async function loadHotCold(game) {
             currentHotColdGame = game;
-            ['DLBZ', 'SRGN', 'FRBD', 'GBD', 'GALI', 'DSWR'].forEach(g => {
+            ['FRBD', 'GBD', 'GALI', 'DSWR'].forEach(g => {
                 const btn = document.getElementById(`btn-hc-${g}`);
-                if (!btn) return;
                 if (g === game) {
                     btn.className = 'px-2 py-0.5 rounded text-[11px] font-bold bg-amber-500 text-slate-950';
                 } else {
@@ -1097,12 +1050,10 @@
                 tr.className = 'hover:bg-slate-800/40 transition-colors';
                 tr.innerHTML = `
                     <td class="p-2.5 font-semibold text-slate-300">${r.date}</td>
-                    <td class="p-2.5 ${r.DSWR === 'XX' || !r.DSWR ? 'text-slate-600' : 'text-amber-400 font-bold'}">${r.DSWR || 'XX'}</td>
-                    <td class="p-2.5 ${r.DLBZ === 'XX' || !r.DLBZ ? 'text-slate-600' : 'text-emerald-400 font-bold'}">${r.DLBZ || 'XX'}</td>
-                    <td class="p-2.5 ${r.SRGN === 'XX' || !r.SRGN ? 'text-slate-600' : 'text-rose-400 font-bold'}">${r.SRGN || 'XX'}</td>
-                    <td class="p-2.5 ${r.FRBD === 'XX' || !r.FRBD ? 'text-slate-600' : 'text-cyan-400 font-bold'}">${r.FRBD || 'XX'}</td>
-                    <td class="p-2.5 ${r.GBD === 'XX' || !r.GBD ? 'text-slate-600' : 'text-indigo-400 font-bold'}">${r.GBD || 'XX'}</td>
-                    <td class="p-2.5 ${r.GALI === 'XX' || !r.GALI ? 'text-slate-600' : 'text-purple-400 font-bold'}">${r.GALI || 'XX'}</td>
+                    <td class="p-2.5 ${r.DSWR === 'XX' ? 'text-slate-600' : 'text-amber-400 font-bold'}">${r.DSWR}</td>
+                    <td class="p-2.5 ${r.FRBD === 'XX' ? 'text-slate-600' : 'text-cyan-400 font-bold'}">${r.FRBD}</td>
+                    <td class="p-2.5 ${r.GBD === 'XX' ? 'text-slate-600' : 'text-indigo-400 font-bold'}">${r.GBD}</td>
+                    <td class="p-2.5 ${r.GALI === 'XX' ? 'text-slate-600' : 'text-purple-400 font-bold'}">${r.GALI}</td>
                 `;
                 tbody.appendChild(tr);
             });
