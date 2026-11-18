@@ -549,20 +549,59 @@
             container.classList.remove('hidden');
             grid.innerHTML = '';
 
-            targetLabel.textContent = `Simulation & Verification for: ${data.target_date}`;
+            targetLabel.textContent = `Sequential Prediction & Verification: ${data.target_date} (Next-Day DSWR: ${data.next_date || 'Next Day'})`;
 
             const gameMeta = {
-                'DSWR': { name: 'Desawar', color: 'amber', icon: 'fa-crown', time: '5:00 AM' },
                 'FRBD': { name: 'Faridabad', color: 'cyan', icon: 'fa-sun', time: '6:15 PM' },
                 'GBD': { name: 'Ghaziabad', color: 'indigo', icon: 'fa-city', time: '8:30 PM' },
-                'GALI': { name: 'Gali', color: 'purple', icon: 'fa-moon', time: '11:30 PM' }
+                'GALI': { name: 'Gali', color: 'purple', icon: 'fa-moon', time: '11:30 PM' },
+                'DSWR': { name: 'Desawar', color: 'amber', icon: 'fa-crown', time: 'Next Day 5:00 AM' }
             };
 
-            ['DSWR', 'FRBD', 'GBD', 'GALI'].forEach(gameKey => {
+            ['FRBD', 'GBD', 'GALI', 'DSWR'].forEach(gameKey => {
                 if (!data.predictions || !data.predictions[gameKey]) return;
                 const p = data.predictions[gameKey];
                 const v = data.verdicts ? data.verdicts[gameKey] : null;
                 const meta = gameMeta[gameKey] || { name: gameKey, color: 'slate', icon: 'fa-dice', time: '' };
+                const timeLabel = gameKey === 'DSWR' && p.prediction_for_date ? `${p.prediction_for_date} • 5:00 AM` : meta.time;
+
+                if (p.is_locked) {
+                    const lockedCardHtml = `
+                        <div class="bg-cardbg/70 border border-dashed border-slate-700 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+                            <div>
+                                <!-- Header -->
+                                <div class="flex items-center justify-between border-b border-bordercolor pb-2 mb-3">
+                                    <span class="text-xs text-slate-300 uppercase font-bold flex items-center gap-1.5">
+                                        <i class="fa-solid ${meta.icon} text-${meta.color}-400"></i>
+                                        ${meta.name} (${gameKey})
+                                    </span>
+                                    <span class="text-[10px] text-slate-500">${timeLabel}</span>
+                                </div>
+
+                                <!-- Locked State -->
+                                <div class="py-10 px-3 text-center flex flex-col items-center justify-center">
+                                    <div class="h-12 w-12 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center mb-3">
+                                        <i class="fa-solid fa-lock text-amber-400 text-lg"></i>
+                                    </div>
+                                    <span class="px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/15 text-amber-300 border border-amber-500/30 mb-2">
+                                        WAITING FOR ${p.waiting_for} RESULT
+                                    </span>
+                                    <p class="text-xs text-slate-400 leading-relaxed max-w-[220px]">
+                                        ${p.waiting_message || `Will predict once actual ${p.waiting_for} result is declared.`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 border-t border-bordercolor text-[10px] text-slate-500 flex items-center justify-between">
+                                <span>Sequential Mode</span>
+                                <span>Target: ${p.prediction_for_date || data.target_date}</span>
+                            </div>
+                        </div>
+                    `;
+                    grid.innerHTML += lockedCardHtml;
+                    return;
+                }
+
                 const topJodi = (p.top_primary_jodis && p.top_primary_jodis.length > 0) ? p.top_primary_jodis[0] : null;
 
                 let verdictBadges = '';
@@ -583,7 +622,7 @@
                         verdictBadges += `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">MISSED</span>`;
                     }
                 } else {
-                    verdictBadges = `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400">Upcoming / No Draw Recorded</span>`;
+                    verdictBadges = `<span class="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400">Upcoming / Draw Pending</span>`;
                 }
 
                 const cardHtml = `
@@ -595,7 +634,7 @@
                                     <i class="fa-solid ${meta.icon} text-${meta.color}-400"></i>
                                     ${meta.name} (${gameKey})
                                 </span>
-                                <span class="text-[10px] text-slate-500">${meta.time}</span>
+                                <span class="text-[10px] text-slate-400">${timeLabel}</span>
                             </div>
 
                             <!-- Comparison Box (Actual vs Prediction) -->
@@ -605,7 +644,7 @@
                                     <div class="text-2xl font-black ${v && v.actual && v.actual !== 'XX' ? 'text-emerald-400' : 'text-slate-500'} font-mono my-0.5">
                                         ${v && v.actual ? v.actual : 'XX'}
                                     </div>
-                                    <span class="text-[9px] text-slate-500 block">Drawn in history</span>
+                                    <span class="text-[9px] text-slate-500 block">${p.prediction_for_date || data.target_date}</span>
                                 </div>
                                 <div class="bg-darkbg/90 border border-amber-500/30 rounded-xl p-2.5 text-center">
                                     <span class="text-[10px] text-amber-400 uppercase font-semibold block">Top Pick</span>
@@ -663,8 +702,8 @@
 
                         <!-- Footer -->
                         <div class="pt-2 border-t border-bordercolor text-[10px] text-slate-400 flex items-center justify-between">
-                            <span><strong class="text-slate-300">Andar:</strong> ${p.solid_andar.primary}</span>
-                            <span><strong class="text-slate-300">Bahar:</strong> ${p.solid_bahar.primary}</span>
+                            <span><strong class="text-slate-300">Andar:</strong> ${p.solid_andar ? p.solid_andar.primary : '--'}</span>
+                            <span><strong class="text-slate-300">Bahar:</strong> ${p.solid_bahar ? p.solid_bahar.primary : '--'}</span>
                         </div>
                     </div>
                 `;
@@ -672,9 +711,9 @@
             });
 
             if (data.has_actual) {
-                summaryLabel.textContent = `Completed Verification: Compared with drawn historical records.`;
+                summaryLabel.textContent = `Sequential Flow: FRBD → GBD → GALI → Next-Day DSWR (${data.next_date || 'Next Day'})`;
             } else {
-                summaryLabel.textContent = `Custom Date Simulation: No declared numbers in database.`;
+                summaryLabel.textContent = `Sequential Live Flow: FRBD ready; GBD, GALI & Next-Day DSWR unlock as each result arrives.`;
             }
         }
 
@@ -781,7 +820,7 @@
                 'FRBD': { name: 'Faridabad', color: 'cyan', icon: 'fa-sun', time: '6:15 PM' },
                 'GBD': { name: 'Ghaziabad', color: 'indigo', icon: 'fa-city', time: '8:30 PM' },
                 'GALI': { name: 'Gali', color: 'purple', icon: 'fa-moon', time: '11:30 PM' },
-                'DSWR': { name: 'Desawar', color: 'amber', icon: 'fa-crown', time: '5:00 AM' }
+                'DSWR': { name: 'Desawar', color: 'amber', icon: 'fa-crown', time: 'Next Day 5:00 AM' }
             };
 
             const order = ['FRBD', 'GBD', 'GALI', 'DSWR'];
@@ -791,6 +830,53 @@
                 const p = predictions[gameKey];
                 const b = backtests ? (backtests[gameKey] || {}) : {};
                 const meta = gameMeta[gameKey] || { name: gameKey, color: 'slate', icon: 'fa-dice', time: '' };
+                const timeDisplay = gameKey === 'DSWR' && p.prediction_for_date
+                    ? `Next Day: ${p.prediction_for_date} • 5:00 AM`
+                    : `Draw Time: ${meta.time} (${p.prediction_for_date || ''})`;
+
+                if (p.is_locked) {
+                    const lockedHtml = `
+                        <div class="bg-cardbg/70 border border-dashed border-slate-700 rounded-2xl p-4 shadow-xl flex flex-col justify-between">
+                            <div>
+                                <!-- Header -->
+                                <div class="flex items-center justify-between border-b border-bordercolor pb-2.5 mb-3">
+                                    <div>
+                                        <div class="text-xs text-slate-400 uppercase font-semibold flex items-center gap-1.5">
+                                            <i class="fa-solid ${meta.icon} text-${meta.color}-400"></i>
+                                            ${meta.name} (${gameKey})
+                                        </div>
+                                        <div class="text-[11px] text-slate-500">${timeDisplay}</div>
+                                    </div>
+                                    <span class="px-2 py-0.5 rounded text-[10px] font-bold border bg-slate-800 text-amber-300 border-amber-600/40">
+                                        Waiting for ${p.waiting_for}
+                                    </span>
+                                </div>
+
+                                <!-- Locked State Body -->
+                                <div class="py-16 px-4 text-center flex flex-col items-center justify-center">
+                                    <div class="h-14 w-14 rounded-full bg-slate-800/90 border border-slate-700 flex items-center justify-center mb-3">
+                                        <i class="fa-solid fa-lock text-amber-400 text-xl"></i>
+                                    </div>
+                                    <div class="text-xs font-bold text-amber-300 uppercase tracking-wider mb-1.5">
+                                        Waiting for ${p.waiting_for} Actual Result
+                                    </div>
+                                    <p class="text-xs text-slate-400 leading-relaxed max-w-[230px]">
+                                        ${p.waiting_message || `Prediction will unlock automatically once actual ${p.waiting_for} result is declared.`}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="pt-2 border-t border-bordercolor">
+                                <div class="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                                    <span>Backtest Top-20: <strong class="text-white">${b.top20_jodi_accuracy_pct || 0}%</strong></span>
+                                    <span>Haruf: <strong class="text-emerald-400">${b.haruf_coverage_pct || 0}%</strong></span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    container.innerHTML += lockedHtml;
+                    return;
+                }
 
                 const isDeclared = p.current_status && p.current_status.includes('Result Out');
                 const badgeColor = isDeclared ? 'bg-emerald-900/60 text-emerald-300 border-emerald-600/40' : 'bg-amber-900/60 text-amber-300 border-amber-600/40';
@@ -807,7 +893,7 @@
                                         <i class="fa-solid ${meta.icon} text-${meta.color}-400"></i>
                                         ${meta.name} (${gameKey})
                                     </div>
-                                    <div class="text-[11px] text-slate-500">Draw Time: ${meta.time}</div>
+                                    <div class="text-[11px] text-slate-500">${timeDisplay}</div>
                                 </div>
                                 <span class="px-2 py-0.5 rounded text-[11px] font-bold border ${badgeColor}">
                                     ${p.current_status}
